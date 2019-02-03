@@ -1,0 +1,72 @@
+% tiffCell = generate_tiff_stacks(frameInfo,spotInfo,varargin)
+    
+% Generates a vectors of simulated positions for transcriptional loci over
+% a specified period of time within a specified imaging volume. For
+% simplicity, trajectories are treated as random walks and boundaries are
+% treated as reflecting
+%
+% 
+% INPUTS
+% frameInfo: Data structure containing FOV attributes
+% spotInfo: Data structure containing spot attributes (position, intensity,
+% etc.)
+% OPTIONS
+% xyzResOut: Numeric vector (3x1) specifying experimental resolution to
+% siimulate
+% simulated TIFF stacks
+% SNR: Numeric scalar. Sets level of background fluorescence relative to
+% spot brightness
+% noiseNoise: Numeric scalar. Standard deviation of bkg noise.
+% RETURNS
+% tiffCell: Cell array (1xF). Each element is 3D array containing all TIFFS for a
+% single time point
+function [tiffCell, frameInfo] = generate_tiff_stacks(frameInfo,spotInfo,varargin)
+
+    close all
+    
+    % set defaults 
+    xyzResOut = [.2 .2 .5] * 1e-6;
+    SNR = .1;
+    noiseNoise = .5;
+    for i=1:length(varargin)  
+        if isstring(varargin{i})
+            if ismember(varargin{i},{'xyzResOut','SNR','noiseSigma'})       
+                eval([varargin{i} '=varargin{i+1}']);
+            end
+        end
+    end
+    
+    % recored attributes
+    frameInfo.SNR = SNR;
+    frameInfo.noiseSigma = noiseNoise;
+    frameInfo.xyzResOut = xyzResOut;
+    
+    % extract params
+    dimVec = frameInfo.dimVec;
+    tVec = frameInfo.tVec;
+    rXY = frameInfo.rXY;
+    rZ = frameInfo.rZ;
+    % calculate number of pixels to simulate in each direction
+    xyzNPixels = round(dimVec ./ xyzResOut) + 1;    
+    % calculate PSF
+    inSigma = [rXY rXY rZ] ./ xyzResOut;
+    psfKer = nonIsotropicGaussianPSF(inSigma,5*max(inSigma));
+    kDim = floor(size(psfKer,1)/2);
+    % calculate bkg fluo level
+    noiseMu = mean([spotInfo.fluo_MS2]) * SNR;
+    noiseSigma = noiseMu * noiseNoise;
+    % for each time point, generate high-res volumes then downsample
+    tiffCell = cell(1,numel(tVec));
+    for t = 1:numel(tVec)
+        % start with bkg noise
+        fullFrame = normrnd(noiseMu,noiseSigma,xyzNPixels(1),xyzNPixels(2),xyzNPixels(3));
+        % iterate through spots and add to stack
+        for i = 1:numel(spotInfo)
+            fluo = spotInfo(i).fluo_MS2(t);
+            position = spotInfo(i).xyzMat(t,:);    
+            rangeCell = find_ranges(xyzNPixels,position,kDim);            
+            fullFrame(rangeCell{1}+position(1), rangeCell{2}+position(2), rangeCell{3}+position(3)) = ...
+                fluo * psfKer(rangeCell{1}, rangeCell{2}, rangeCell{3});
+        end
+        tiffCell{t} = fullFrame;
+    end

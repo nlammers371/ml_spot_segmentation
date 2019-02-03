@@ -1,4 +1,4 @@
-%function xyzMat = simulate_particle_positions(dimVec,xySpeed,zSpeed,nbSize,nParticles,tVec,xyzRes)
+%function [frameInfo, xyzMat] = simulate_particle_positions(dimVec,xySpeed,zSpeed,nbSize,nParticles,tVec,xyzRes)
     
 % Generates a vectors of simulated positions for transcriptional loci over
 % a specified period of time within a specified imaging volume. For
@@ -17,22 +17,24 @@
 % nParticles: Integer scalar. Number of particles to simulate
 % tVec: Fx1 numeric vector of times. Where F is the number of frames to
 % simulate. 
-% xyzRes: Nuemeric scalar. Specifies resolution (in microns) to use for
+% xyzRes: Nuemeric scalar. Specifies resolution (in meters) to use for
 % siumlation
 %
 % RETURNS
 % xyzMat: nParticlesx3xF numeric array containing simulated positions of each particle
 % over time
-function xyzMat = simulate_particle_positions(nParticles,tVec,varargin)
+% frameInfo: Structure containing key attributes of simulated data
+
+function [frameInfo, xyzMat] = simulate_particle_positions(nParticles,tVec,varargin)
 
     close all
     
     % set defaults 
-    xyzRes = .2;
-    nbSize = 2;
-    xySpeed = .05;
-    zSpeed = .01;
-    dimVec = [100 100 10];
+    xyzRes = .2e-6;
+    nbSize = 2e-6;
+    xySpeed = .05e-6;
+    zSpeed = .01e-6;
+    dimVec = [100 100 10]*1e-6;
     for i=1:length(varargin)  
         if isstring(varargin{i})
             if ismember(varargin{i},{'xyzRes', 'nbSize', 'xySpeed', 'zSpeed','dimVec'})       
@@ -40,12 +42,19 @@ function xyzMat = simulate_particle_positions(nParticles,tVec,varargin)
             end
         end
     end
+    % recored attributes
+    frameInfo.xyzRes = xyzRes;
+    frameInfo.nbSize = nbSize;
+    frameInfo.xySpeed = xySpeed;
+    frameInfo.zSpeed = zSpeed;
+    frameInfo.dimVec = dimVec;
+    frameInfo.tVec = tVec;
+    
     % calculate basic simulation parameters
     tRes = tVec(2) - tVec(1); % seconds
     xyStep = xySpeed * tRes / xyzRes;
     zStep = zSpeed * tRes / xyzRes;
-    xyzNPixels = round(dimVec / xyzRes) + 1;
-    allNPixels = prod(xyzNPixels-1);
+    xyzNPixels = round(dimVec / xyzRes) + 1;    
     nbPix = ceil(nbSize / xyzRes);
     
     % initialize position array 
@@ -78,6 +87,7 @@ function xyzMat = simulate_particle_positions(nParticles,tVec,varargin)
                 if p > 1
                     distVec = sqrt(sum((xyzMat(pOrder(1:p-1),:,t)-proposal).^2,2));
                 end
+                proposal = round(proposal);
                 accepted = all(distVec>nbPix)&all(proposal>1)&all(proposal<xyzNPixels);
             end
             xyzMat(pOrder(p),:,t) = proposal;
