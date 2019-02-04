@@ -37,7 +37,7 @@ function [xyzMat, spotInfo, frameInfo] = simulate_MS2_data(project,nParticles,tV
         for j = 1:numel(fnames)
             spotInfo(i).(fnames{j}) = gillespie.(fnames{j});
         end
-        spotInfo(i).xyzMat = reshape(xyzMat(i,:,:),numel(tVec),3);
+        spotInfo(i).xyzMat = reshape(xyzMat(i,:,:),3,numel(tVec))';
     end
     
     % call function to generate physical particle attributes
@@ -58,9 +58,9 @@ function [xyzMat, spotInfo, frameInfo] = simulate_MS2_data(project,nParticles,tV
    
     for t = 1:numel(tVec)
         tiff = tiffCell{t};
-        imwrite(tiff(:,:,1),[tiffPath 'sim_data_t' sprintf('%03d',t) '.tiff']);
+        imwrite(tiff(:,:,1),[tiffPath 'sim_data_t' sprintf('%03d',t) '.tif']);
         for i = 2:size(tiff,3)
-            imwrite(tiff(:,:,i),[tiffPath 'sim_data_t' sprintf('%03d',t) '.tiff'],'WriteMode','append');
+            imwrite(tiff(:,:,i),[tiffPath 'sim_data_t' sprintf('%03d',t) '.tif'],'WriteMode','append');
         end
     end
     toc

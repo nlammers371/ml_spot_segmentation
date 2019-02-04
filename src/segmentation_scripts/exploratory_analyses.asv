@@ -1,0 +1,29 @@
+% Exploratory script to get a feel for simulated data
+clear
+close all
+% set file paths
+project = 'test1';
+dataPath = ['../../dat/' project '/'];
+% load data
+load([dataPath 'spotInfo.mat']); % contains information on simulated spots
+load([dataPath 'frameInfo.mat']); % contains general sim parameters
+% load tiff stacks 
+tiffFiles = dir([dataPath '/tiffFiles/*.tiff']);
+tiffCell = cell(1,numel(tiffFiles));
+for i = 1:numel(tiffFiles)
+    file
+    tiff_info = imfinfo('2-A^11815^52071.tif'); % return tiff structure, one element per image
+    tiff_stack = imread('2-A^11815^52071.tif', 1) ; % read in first image
+    %concatenate each successive tiff to tiff_stack
+    for ii = 2 : size(tiff_info, 1)
+        temp_tiff = imread('2-A^11815^52071.tif', ii);
+        tiff_stack = cat(3 , tiff_stack, temp_tiff);
+    end
+    tiffCell{i} = imread();
+end
+%%
+% look at max projection of one of the frames
+max_fig = figure;
+imagesc(max(tiffCell{15},[],3));
+colorbar;
+title('Max Projection')

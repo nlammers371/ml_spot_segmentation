@@ -26,7 +26,7 @@ function [tiffCell, frameInfo] = generate_tiff_stacks(frameInfo,spotInfo,varargi
     
     % set defaults 
     xyzResOut = [.2 .2 .5] * 1e-6;
-    SNR = .05;
+    SNR = .03;
     noiseNoise = .5;
     for i=1:length(varargin)  
         if isstring(varargin{i})
@@ -71,7 +71,7 @@ function [tiffCell, frameInfo] = generate_tiff_stacks(frameInfo,spotInfo,varargi
                 fullFrame(rangeCell{1}, rangeCell{2}, rangeCell{3}) + ...
                 fluo * psfKer(filterCell{1}, filterCell{2}, filterCell{3});
         end
-        % now rescale
-        fullFrameOut = imresize3(fullFrame,xyzNPixelsOut);
+        % now rescale       
+        fullFrameOut = imresize3(mat2gray(fullFrame),xyzNPixelsOut);
         tiffCell{t} = fullFrameOut;
     end
